@@ -54,23 +54,178 @@ from moviepy.config import get_setting
 
 from moviepy.tools import subprocess_call
 
- 
+from langdetect import detect
+
+
+
+## RUNS VIDEO FINE AND Rotates Frame of video and then saves it in solution folder :
 
  
 
-directory=os.fsencode(r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\ML_Project\New_Videos")
+def detectFace(image):   
 
-dir=r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\ML_Project\New_Videos"
+    
 
-for file in os.listdir(directory):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)   
 
-    file=file.decode('utf-8')
+    faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-    newFileName=Rotation(dir+"\\"+file)
+    faces = faceCascade.detectMultiScale(gray,scaleFactor=1.3,
+
+    #minNeighbors=3
+
+    #minSize=(30, 30)
+
+    )
+
+    No_Of_Faces = "Found {0} Faces.".format(len(faces))
+
+    print(No_Of_Faces)
+
+    return format(len(faces));
+
+       
+
+def Rotation(inputVideofile):
+
+    cap = cv2.VideoCapture(inputVideofile)#C:/Users/aakash1.mal/Documents/Python_Recording_sessions/ML_Project/\New_Videos/Video_3.mp4')
+
+    FinalAngle=0
+
+    while(cap.isOpened()):
+
+        ret, frame = cap.read()
+
+        if ret==True:   
+
+            detected= detectFace(frame)
+
+            face_Found = "Found Faces "+detected
+
+           
+
+            if (int(detected)==0):
+
+                for angle in np.arange(90,360,90):           
+
+                    rot = imutils.rotate_bound(frame, angle)
+
+                    cv2.imshow("Angle", rot)
+
+                    if(int(detectFace(rot))):
+
+                        FinalAngle=angle
+
+                        break
+
+            else:
+
+                FinalAngle=0
+
+                file_output='empty'
+
+                break
+
+ 
+
+            if FinalAngle!=0:
+
+                print("Rotation success at angle "+ str(FinalAngle))
+
+                break           
+
+        if ret==False:
+
+            break   
+
+        
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+
+            break
+
+    if FinalAngle!=0:
+
+   
+
+        #Convert whole video to FinalAngle and use it further for Eye-blinking process
+
+        frame_width = int(cap.get(3))
+
+        frame_height = int(cap.get(4))
+
+        fw = int(cap.get(3))
+
+        fh = int(cap.get(4))
+
+        #print("w,h",fw,fh)
+
+        #changed width to height and height to width for saving
+
+        now = datetime.now()
+
+        #currentDate = str(now.month) + "_" + str(now.day) + "_" + str(now.year) + "_" + str(now.time)
+
+        currentDate = datetime.now().strftime("%Y_%m_%d-%H_%M_%S") 
+
+        file_output = os.path.join(r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\candidate_" + currentDate + ".mp4")
+
+        out = cv2.VideoWriter(file_output ,cv2.VideoWriter_fourcc(*'FMP4'), 20.0, (frame_height,frame_width))
+
+        
+
+        while(True):
+
+            ret, frame = cap.read()
+
+            if ret == True:
+
+                rot = imutils.rotate_bound(frame, FinalAngle)
+
+                out.write(rot)
+
+               
+
+            else:
+
+                break
+
+       
+
+        
+
+        out.release()
+
+        cap.release()
+
+        cv2.destroyAllWindows()
+
+    return [file_output,face_Found]
+   
+
+ 
+
+textWriter=True
+
+directory=os.fsencode(r"C:\Users\rashi\Documents\Python_Recording_sessions\ML_Project\New_Videos")
+
+dir=r"C:\Users\rashi\Documents\Python_Recording_sessions\ML_Project\New_Videos"
+
+for File in os.listdir(directory):
+
+    File=File.decode('utf-8')
+
+    list= Rotation(dir+"\\"+File)
+
+    newFileName=list[0]
+
+    No_Of_Faces=list[1]
+
+ 
 
     if newFileName=='empty':
 
-        newFileName1=(dir+"\\"+file)
+        newFileName1=(dir+"\\"+File)
 
         videoRotated = "Video is not Rotated"
 
@@ -122,9 +277,9 @@ for file in os.listdir(directory):
 
     
 
-    #inputVideofile="C:/Users/aakash1.mal/Documents/Python_Recording_sessions/ML_Project/successful/candidate3.mp4"
+    #inputVideofile="C:/Users/rashi/Documents/Python_Recording_sessions/ML_Project/successful/candidate3.mp4"
 
-    shapepredPath="C:/Users/aakash1.mal/Documents/Python_Recording_sessions/Machine_Learning/blink-detection/shape_predictor_68_face_landmarks.dat"
+    shapepredPath="C:/Users/rashi/Documents/Python_Recording_sessions/Machine_Learning/blink-detection/shape_predictor_68_face_landmarks.dat"
 
    
 
@@ -136,7 +291,7 @@ for file in os.listdir(directory):
 
     # blink and then a second constant for the number of consecutive
 
-   # frames the eye must be below the threshold
+    # frames the eye must be below the threshold
 
     EYE_AR_THRESH = 0.31999
 
@@ -148,7 +303,7 @@ for file in os.listdir(directory):
 
     COUNTER = 0
 
-    TOTAL = 0
+    TOTAL_Blinks = 0
 
    
 
@@ -194,6 +349,8 @@ for file in os.listdir(directory):
 
     checkFrame=True
 
+   
+
     # loop over frames from the video stream
 
     while True:
@@ -236,15 +393,15 @@ for file in os.listdir(directory):
 
                         videoImage=frame
 
-                        cv2.imwrite(r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\Img_" + currentDate + ".jpg",videoImage)
+                        cv2.imwrite(r"C:\Users\rashi\Documents\Python_Recording_sessions\Output_File\Img_" + currentDate + ".jpg",videoImage)
 
                         checkFrame=False
 
-                        image_to_be_matched = face_recognition.load_image_file('C:/Users/aakash1.mal/Documents/Python_Recording_sessions/ML_Project/successful/Pic_2.png')
+                        image_to_be_matched = face_recognition.load_image_file('C:/Users/rashi/Documents/Python_Recording_sessions/ML_Project/successful/Pic_2.png')
 
                         image_to_be_matched_encoded = face_recognition.face_encodings(image_to_be_matched)[0]
 
-                        current_image = face_recognition.load_image_file(r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\Img_"+ currentDate + ".jpg")
+                        current_image = face_recognition.load_image_file(r"C:\Users\rashi\Documents\Python_Recording_sessions\Output_File\Img_"+ currentDate + ".jpg")
 
                         current_image_encoded = face_recognition.face_encodings(current_image)[0]
 
@@ -370,7 +527,7 @@ for file in os.listdir(directory):
 
                                TOTAL_Blinks += 1
 
-    
+       
 
                          # reset the eye frame counter
 
@@ -392,19 +549,21 @@ for file in os.listdir(directory):
 
            # show the frame
 
-           cv2.imshow("Frame", frame)
+           #cv2.imshow("Frame", frame)
 
-           key = cv2.waitKey(2) & 0xFF
+           #key = cv2.waitKey(2) & 0xFF
 
        # if the `q` key was pressed, break from the loop
 
-           if key == ord("q"):
+           #if key == ord("q"):
 
-              break
+           #   break
 
     print("Total Blinks are :" + str(TOTAL_Blinks))
 
-    print("Number of faces detected: " + str(faces.shape[0]))
+    #print("Number of faces detected: " + str(faces.shape[0]))
+
+    #No_Of_Faces = faces.shape[0]
 
  
 
@@ -418,9 +577,9 @@ for file in os.listdir(directory):
 
  
 
-    ffmpeg_extract_audio(newFileName1,r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\Audio_Output\Video_" + currentDate + ".wav")
+    ffmpeg_extract_audio(dir+"\\"+File,r"C:\Users\rashi\Documents\Python_Recording_sessions\Output_File\Audio_Output\Video_" + currentDate + ".wav")
 
-    AUDIO_FILE = r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\Audio_Output\Video_" + currentDate +".wav"
+    AUDIO_FILE = r"C:\Users\rashi\Documents\Python_Recording_sessions\Output_File\Audio_Output\Video_" + currentDate +".wav"
 
                                
 
@@ -432,23 +591,31 @@ for file in os.listdir(directory):
 
             text=r.recognize_google(audio)
 
-            print("Done Processing:" +str(text))
+            print("Transcription:" +str(text))
 
-            print(detect(text))
+            if textWriter==True:
 
- 
+               with open('C:/Users/rashi/Documents/Python_Recording_sessions/ML_Project/Output_Writer/innovators.csv', 'w', newline='') as file:
 
-    def csv_Writer():
+                    textWriter=False
 
-        with open('innovators.csv', 'w', newline='') as file:
+                    writer = csv.writer(file)
 
-             writer = csv.writer(file)
+                    writer.writerow(["FileName", "VideoRotated", "TOTAL_Blinks","NoOfFaceDetected","TextExtracted",])
 
-             writer.writerow(["SrNo", "VideoRotated", "TOTAL_Blinks","MultiFaceDetected","TextExtracted",])
+                    writer.writerow([File,videoRotated,TOTAL_Blinks,No_Of_Faces,text])
 
-             writer.writerow([counter, VideoRotated,TOTAL_Blinks,No_Of_Faces,text])
+            else:
 
-  
+                file = open('C:/Users/rashi/Documents/Python_Recording_sessions/ML_Project/Output_Writer/innovators.csv', 'a+', newline='')
+
+                with file:    
+
+                     write = csv.writer(file)
+
+                     write.writerow([File,videoRotated,TOTAL_Blinks,No_Of_Faces,text])
+
+   
 
  
 
@@ -459,166 +626,3 @@ for file in os.listdir(directory):
 cap.release()
 
 cv2.destroyAllWindows()
-
-
- 
-
-Video Rotation:-
-
-## RUNS VIDEO FINE AND Rotates Frame of video and then saves it in solution folder :
-
-import numpy as np
-
-import cv2
-
-import imutils
-
-import os
-
-from datetime import datetime
-
-import os
-
-import face_recognition
-
- 
-
-def detectFace(image):   
-
-    
-
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)   
-
-    faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-
-    faces = faceCascade.detectMultiScale(gray,scaleFactor=1.3,
-
-    #minNeighbors=3
-
-    #minSize=(30, 30)
-
-    )
-
-    No_Of_Faces = "Found {0} Faces.".format(len(faces))
-
-    print(No_Of_Faces)
-
-    return format(len(faces));
-
-       
-
-def Rotation(inputVideofile):
-
-    cap = cv2.VideoCapture(inputVideofile)#C:/Users/aakash1.mal/Documents/Python_Recording_sessions/ML_Project/\New_Videos/Video_3.mp4')
-
-    FinalAngle=0
-
-    while(cap.isOpened()):
-
-        ret, frame = cap.read()
-
-        if ret==True:   
-
-            detected=detectFace(frame)
-
-            
-
-            if (int(detected)==0):
-
-                for angle in np.arange(90,360,90):           
-
-                    rot = imutils.rotate_bound(frame, angle)
-
-                    cv2.imshow("Angle", rot)
-
-                    if(int(detectFace(rot))):
-
-                        FinalAngle=angle
-
-                        break
-
-            else:
-
-                FinalAngle=0
-
-                file_output='empty'
-
-                break
-
- 
-
-            if FinalAngle!=0:
-
-                print("Rotation success at angle "+ str(FinalAngle))
-
-                break           
-
-        if ret==False:
-
-            break   
-
-        
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-
-            break
-
-    if FinalAngle!=0:
-
-   
-
-        #Convert whole video to FinalAngle and use it further for Eye-blinking process
-
-        frame_width = int(cap.get(3))
-
-        frame_height = int(cap.get(4))
-
-        fw = int(cap.get(3))
-
-        fh = int(cap.get(4))
-
-        #print("w,h",fw,fh)
-
-        #changed width to height and height to width for saving
-
-        now = datetime.now()
-
-        #currentDate = str(now.month) + "_" + str(now.day) + "_" + str(now.year) + "_" + str(now.time)
-
-        currentDate = datetime.now().strftime("%Y_%m_%d-%H_%M_%S") 
-
-        file_output = os.path.join(r"C:\Users\aakash1.mal\Documents\Python_Recording_sessions\Output_File\candidate_" + currentDate + ".mp4")
-
-        out = cv2.VideoWriter(file_output ,cv2.VideoWriter_fourcc(*'FMP4'), 20.0, (frame_height,frame_width))
-
-       
-
-        while(True):
-
-            ret, frame = cap.read()
-
-            if ret == True:
-
-                rot = imutils.rotate_bound(frame, FinalAngle)
-
-                out.write(rot)
-
-               
-
-            else:
-
-                break
-
-       
-
-        
-
-        out.release()
-
-        cap.release()
-
-        cv2.destroyAllWindows()
-
-    return file_output
-
- 
